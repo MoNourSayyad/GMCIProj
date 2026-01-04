@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link rel="stylesheet" href="cssAll.css">
+    <style>
+
+        body {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: rgb(208, 195, 195);
+            color:rgb(0, 0, 0);
+        }
+
+        .container{
+            text-align:center;
+        }
+        
+        h1 {
+            font-size: 60px;
+            letter-spacing: 2px;
+            margin-bottom: 50px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 24px;
+            border-radius: 30px;
+            border-color: rgb(208, 15, 15);
+            cursor: pointer;
+            background-color: #fafafa;
+            color: #000000;
+        }
+
+        button:hover {
+            box-shadow: 0px 4px 6px rgba(222, 16, 16, 0.3);
+        }
+
+        .message {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ff0000;
+            background: #bc9797;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+         @media screen and (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+        }
+    </style>
+    <script>
+        
+        function selectRole(role) {
+            window.location.href = "sign.html?role=" + role;
+        }
+
+    </script>
+</head>
+<body>
+    <div class = "container">
+    <h1>Welcome!</h1>
+        <div class="message" id="userMessage">
+            👋 Welcome! Are you a Tutor or a Student?
+        </div>
+        <div class = "buttons">
+            <button class = "tutor" onclick="selectRole('Tutor')">Tutor</button>
+            <button class = "student" onclick="selectRole('Student')">Student</button>
+        </div>
+    </div>
+</body>
+</html>

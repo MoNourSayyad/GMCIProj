@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signing</title>
+    <link rel="stylesheet" href="cssAll.css">
+    <script src = "https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: rgb(82, 78, 78);
+            color:rgb(0, 0, 0);
+        }
+        
+        .container {
+            background-color: #a79a9a;
+            box-sizing: border-box;
+            max-width: 500px;
+            width: 90%;
+            border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            padding: 5px;
+        }
+
+        #roleTitle {
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            box-shadow: 0px 2px 3px rgba(249, 5, 5, 0.3);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            
+        }
+
+        .tabs button {
+            cursor: pointer;
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(80, 78, 78);
+        }
+
+        .tabs button.active {
+            background: #4ccf4c;
+            color: white;
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            padding: 70px;
+            gap: 5px
+        }
+
+        .form button {
+            padding: 10px;
+            background: #1587bc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form input {
+            width: 100%;
+            padding: 10px 15px;
+            margin: 5px auto;
+            box-sizing: border-box;
+        }
+
+        .form label {
+            display: block;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        @media screen and (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <h2 id="roleTitle"></h2>
+    <div class="container">
+    <div class="tabs">
+        <button id="loginTab" class="active" onclick="showLogin()" >Log in</button>
+        <button id="signupTab" onclick= "showSignUp()">Sign up</button>
+    </div>
+    <form id="loginForm" class = "form">
+        <label for="logininUser">Username: <input id = "loginUser" type="text"  name = "username" placeholder="username" required autofocus></label>
+        <label for="loginPass">Password: <input id = "loginPass" type="password" name = "password" placeholder="password" required></label>
+        <button type="submit">Login</button>
+    </form>
+
+    <form id="signupForm" class = "form hidden">
+        <label>Username: <input id = "signupUser" type="text" name = "username" placeholder="username" required ></label>
+        <label>Email: <input id = "signupEmail" type="email" pattern = "[a-zA-Z0-9._%+-]+@stud\.uni-hannover\.de" name = "email" placeholder="blabla@stud.uni-hannover.de" required></label>
+        <label>Password: <input id = "signupPass" type="password" name = "password" placeholder="password" required></label>
+        <label>Confirm password: <input id = "signupConf" type="password" name = "confirmPassword" placeholder="password" required></label>
+        <button type="submit">Sign Up</button>
+    </form>
+    </div>
+    <script>
+        const loginForm = document.getElementById("loginForm");
+        const signupForm = document.getElementById("signupForm");
+        const loginTab = document.getElementById("loginTab");
+        const signupTab = document.getElementById("signupTab");
+        
+        const url = new URLSearchParams(window.location.search);
+        const role = url.get("role");
+        const roleTitle = document.getElementById("roleTitle");
+        
+        const loginUser = document.getElementById('loginUser');
+        const loginPass = document.getElementById('loginPass');
+        const signupUser = document.getElementById('signupUser');
+        const signupEmail = document.getElementById('signupEmail');
+        const signupPass = document.getElementById('signupPass');
+        const signupConf = document.getElementById('signupConf');
+        
+        function showLogin() {
+            loginForm.classList.remove("hidden");
+            signupForm.classList.add("hidden");
+
+            loginTab.classList.add("active");
+            signupTab.classList.remove("active");
+        }
+
+        function showSignUp() {
+            signupForm.classList.remove("hidden");
+            loginForm.classList.add("hidden");
+
+            signupTab.classList.add("active");
+            loginTab.classList.remove("active");
+        }
+
+        window.onload = function() {
+
+            if(role === "Tutor")
+                roleTitle.innerHTML = "Tutor Portal";
+            else if(role === "Student")
+                roleTitle.innerHTML = "Student Portal";
+            else
+                roleTitle.innerHTML = "Welcome!"
+        }
+        
+        const localDB = new PouchDB("users");
+        const remoteDB = new PouchDB("http://localhost:5984/users");
+        localDB.sync(remoteDB, {live:true, retry: true})
+            .on('error', function (err) { console.error("Sync Error (Check CouchDB and CORS!):", err) });
+
+        signupForm.addEventListener("submit", async e => {
+            e.preventDefault();
+
+            if (signupPass.value !== signupConf.value) {
+                alert("Passwords dont match!");
+                return;
+            }
+
+            try {
+                await localDB.put({
+                    _id: "user_" + signupUser.value,
+                    username: signupUser.value,
+                    email: signupEmail.value,
+                    password: signupPass.value,
+                    role: role
+                });
+                
+                alert("Account created! You can log in.");
+                showLogin();
+                signupForm.reset();
+            } catch (error) {
+                if (error.status === 409)
+                    alert("Username already exists");
+                else
+                    alert("Error creating account: " + error.name); 
+            }
+        });
+
+        loginForm.addEventListener("submit", async e => {
+            e.preventDefault();
+
+            try {
+                const user = await localDB.get("user_" + loginUser.value);
+
+                if (user.password !== loginPass.value) {
+                    alert("Wrong Pass.");
+                    return;
+                }
+
+                if (user.role !== role) {
+                    alert(`Wrong Portal. U are a ${user.role}`);
+                    return;
+                }
+
+                if (role === "Tutor")
+                    window.location.href = "tutor.html"
+                else if (role === "Student")
+                    window.location.href = "student.html"
+                else  // Sfaety procedure honeslty
+                    alert("Who are you?? // log in  successful but maybe redirection error tho.");
+            }catch (error){
+                if (error.status == 404)
+                    alert("User not found");
+                else
+                    alert("An error occured during logging in " + error.name);
+            }
+        }); 
+    </script>
+</body>
+</html>
