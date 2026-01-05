@@ -170,7 +170,7 @@
         const localDB = new PouchDB("users");
         const remoteDB = new PouchDB("http://localhost:5984/users");
         localDB.sync(remoteDB, {live:true, retry: true})
-            .on('error', function (err) { console.error("Sync Error (Check CouchDB and CORS!):", err) });
+            .on('error', function (err) { console.error("Sync Error (Check CouchDB and CORS):", err) });
 
         signupForm.addEventListener("submit", async e => {
             e.preventDefault();
@@ -220,7 +220,7 @@
                     window.location.href = "tutor.html"
                 else if (role === "Student")
                     window.location.href = "student.html"
-                else  // Sfaety procedure honeslty
+                else  // Safety procedure honeslty
                     alert("Who are you?? // log in  successful but maybe redirection error tho.");
             }catch (error){
                 if (error.status == 404)

@@ -3,11 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student's Page</title>
+    <title>Live View</title>
     <link rel="stylesheet" href="cssAll.css">
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
 
+<style>
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #eef2f7;
+    color: #333;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 { 
+  margin-bottom: 20px; 
+}
+
+input, select, button { 
+  padding: 8px 12px; 
+  margin: 10px 0; 
+  border-radius: 6px; 
+  border: 1px solid #ccc; 
+}
+
+button { 
+  background: #3498db; 
+  color: white; 
+  border: none; 
+  cursor: pointer; 
+}
+
+button:hover { 
+  background: #2980b9; 
+}
+
+.feedback-container {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: left;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.feedback-item { 
+  margin-bottom: 15px; 
+}
+
+.feedback-item label { 
+  display: block; 
+  margin-bottom: 5px; 
+  font-weight: 500; 
+}
+
+#status { 
+  margin-top: 20px; 
+  color: green; 
+  font-weight: bold; 
+  }
+
+</style>
 </head>
 <body>
-    
+
+<h1>Student Feedback</h1>
+
+<div id="pinEntry">
+    <p>Enter Lesson PIN to participate:</p>
+    <input type="text" id="lessonPin" placeholder="Enter the digit PIN or scan QR code">
+    <button onclick="joinLesson()">Join Lesson</button>
+</div>
+
+<div class="feedback-container" id="feedbackForm" style="display:none;">
+    <h2>Lesson Feedback</h2>
+    <div id="questionsContainer"></div>
+    <button onclick="submitFeedback()">Submit Feedback</button>
+  </div>
+  <p id="status"></p>
+
+<script>
+const responsesDB = new PouchDB("responses");
+const responsesRemote = new PouchDB("http://localhost:5984/responses");
+
+const sessionsDB = new PouchDB("sessions"); 
+const sessionsRemote = new PouchDB("http://localhost:5984/sessions");
+
+responsesDB.sync(responsesRemote, { live: true, retry: true });
+sessionsDB.sync(sessionsRemote, { live: true, retry: true });
+
+let lessonPin = null;
+let lessonDoc = null;
+
+const questions = [
+    { text: "How do you rate the class today?", min: 1, max: 5 },
+    { text: "Did the lecture cover the whole topic?", min: 1, max: 5 },
+    { text: "Was the teacher's explanation tempo appropriate?", min: 1, max: 5 },
+    { text: "How well did you understand the lesson?", min: 1, max: 5 }
+];
+
+const params = new URLSearchParams(window.location.search);
+if (params.has("pin")) {
+    document.getElementById("lessonPin").value = params.get("pin");
+    joinLesson();
+}
+
+async function joinLesson() {
+    const pinInput = document.getElementById("lessonPin").value.trim();
+    if (!pinInput) {
+        alert("Please enter a PIN");
+        return;
+    }
+
+    const result = await sessionsDB.allDocs({ include_docs: true });
+    const lessons = result.rows
+        .map(r => r.doc)
+        .filter(d => d.type === "lesson");
+
+    lessonDoc = lessons.find(
+        l => l.pin === pinInput && !l.ended && new Date(l.startTime) <= new Date()
+    );
+
+    if (!lessonDoc) {
+        alert("Invalid or inactive lesson PIN");
+        return;
+    }
+
+    lessonPin = pinInput;
+
+    document.getElementById("pinEntry").style.display = "none";
+    renderQuestions();
+}
+
+function renderQuestions() {
+    const container = document.getElementById("questionsContainer");
+    container.innerHTML = "";
+
+    questions.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.className = "feedback-item";
+        div.innerHTML = `
+            <label>${q.text}</label>
+            <select id="q${i}">
+                ${Array.from({ length: q.max }, (_, n) =>
+                    `<option value="${n + 1}">${n + 1}</option>`
+                ).join("")}
+            </select>
+        `;
+        container.appendChild(div);
+    });
+
+    document.getElementById("feedbackForm").style.display = "block";
+}
+
+async function submitFeedback() {
+    if (!lessonPin || !lessonDoc) return;
+
+    const answers = [];
+
+    for (let i = 0; i < questions.length; i++) {
+        const value = Number(document.getElementById(`q${i}`).value);
+        answers.push({
+            question: questions[i].text,
+            value: value
+        });
+    }
+
+    const responseDoc = {
+        _id: `response_${lessonPin}_${Date.now()}`,
+        type: "response",
+        lessonPin: lessonPin,
+        lessonId: lessonDoc._id,
+        answers: answers,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        await responsesDB.put(responseDoc);
+
+        document.getElementById("feedbackForm").style.display = "none";
+        document.getElementById("status").textContent = "Your feedback is sent.";
+    } catch (err) {
+        console.error("Failed to save feedback:", err);
+        alert("Error submitting feedback. Please try again.");
+    }
+}
+</script>
+
 </body>
 </html>

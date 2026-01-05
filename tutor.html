@@ -1,13 +1,464 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tutor's Page</title>
-    <link rel="stylesheet" href="cssAll.css">
+<meta charset="UTF-8">
+<title>Teacher's Page/</title>
+<link rel="stylesheet" href="cssAll.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+<style>
+        body {
+            background-color: rgb(198, 204, 209);
+            color:steelblue;
+        }
 
+        header {
+            background-color: navy;
+            color: aliceblue;
+            padding: 10px 0px;
+            display: flex;
+            justify-content:center;
+            align-items: center;
+        }
+
+        header h1 {
+            font-weight:50px;
+            font-size:32px;
+        }
+
+        header button { 
+            background:#ff260e;
+            margin-right: 5px;
+            padding:8px 12px; 
+            border-radius:6px; 
+            cursor:pointer;
+            color:rgb(255, 255, 255);
+        }
+
+        header button:hover { 
+            background:#ef563b; 
+        }
+
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 60px auto;
+            gap: 20px;
+        }
+
+        .left, .right {
+            background-color: rgb(228, 247, 248);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow:80px 80px 120px rgba(0, 0, 0, 0.1);
+            min-height: 500px;
+            overflow-y: scroll;
+        }
+
+        .left {
+            flex: 2;
+            max-height: 80vh;
+        }
+
+        .right {
+            flex:1;
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            text-align: center;
+            gap: 20px;
+        }
+
+        button { 
+            cursor:pointer;
+            padding:8px 14px; 
+            border-radius:6px;
+            background:#3498db; 
+            color:white; 
+            margin: 10px 0px;
+        }
+
+        button:hover { 
+            background:#208ad1; 
+        }
+
+        #subjectListContainer {
+          margin-top: 20px;
+        }
+
+        .subject { 
+            margin-bottom:20px; 
+            border-left:4px solid #3498db; 
+            padding:12px 16px; 
+            border-radius:8px; 
+            background:#f9fbfd; 
+        }
+
+        .subject h3 { 
+            display:flex; 
+            justify-content:space-between; 
+            align-items:center; font-size:18px; 
+            margin-bottom:8px; 
+        }
+
+        .lesson { padding:8px 12px; 
+            margin:5px 0 0 20px; 
+            border-radius:6px; 
+            font-weight:500; 
+            transition:0.2s; 
+            display:flex; 
+            justify-content:space-between; 
+            align-items:center; 
+        }
+
+        .lesson.online { 
+            background:#2ecc71; 
+            color:white; 
+            cursor:pointer; 
+        }
+
+        .lesson.online:hover { 
+            background:#098e41; 
+        }
+        .lesson.offline { 
+            background:#bdc3c7; 
+            color:white; 
+            cursor:default; 
+        }
+
+        .liveBox h2 { 
+            margin-bottom:15px; 
+            color:#042d48;
+            letter-spacing: 2px;
+        }
+
+        .pin { 
+            font-size:40px; 
+            letter-spacing:6px; 
+            font-weight:bold; 
+            margin-top:15px; 
+            color:#e13320; 
+        }
+
+        #qrCode { 
+            margin-top:10px; 
+        }
+        .lessonForm { 
+            display:flex; 
+            gap:8px; 
+            margin-top:10px; 
+            flex-wrap:wrap; 
+        }
+
+        .lessonForm input { 
+            padding:6px; 
+            border-radius:6px; 
+            border:1px solid #ccc; 
+            font-size:14px; 
+            flex:1; 
+        }
+
+        .finishedSection { 
+            margin-top:30px; 
+            border-top:3px solid #ccc; 
+            padding-top:10px; 
+        }
+
+        .finishedSection h3 { 
+            margin-bottom:10px; 
+        }
+
+        .finishedLessons { 
+            padding:6px 12px; 
+            background:#ecf0f1; 
+            margin-bottom:5px; 
+            border-radius:6px; 
+        }
+
+         @media screen and (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+        }
+
+    </style>
 </head>
 <body>
+
+<header>
+  <h1>Teacher's Dashboard</h1>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+  <div class="left">
+    <button onclick="addSubject()">+ Add Subject</button>
+    <div id="subjectList" style="margin-top:20px;"></div>
+
+    <div class="FinishedSection">
+      <h3>Finished Lessons</h3>
+      <div id="finishedLessons"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="liveBox">
+      <h2>Live Lesson</h2>
+      <p id="liveTitle" style="font-size:18px; margin-bottom:10px;">Select an online lesson</p>
+      <div class="pin" id="pin"></div>
+      <div id="qrCode"></div>
+      <p id="link"></p>
+      <button id="endFeedback" onclick="endLesson()" style="display:none; margin-top:10px;">End Lesson</button>
+      <button id="ViewLiveFeedback" onclick="openLiveFeedback()" style="margin-top:10px; display:none;">Live Feedback</button>
+    </div>
+  </div>
+
+</div>
+<script>
+let subjects = [];
+let finishedLessons = [];
+let activeLesson = null;
+let qr = null; 
+
+const localDB = new PouchDB("sessions");
+const remoteDB = new PouchDB("http://localhost:5984/sessions");
+
+async function SyncFunc() {
+    try {
+        localDB.sync(remoteDB, {
+            live: true,
+            retry: true})
+            .on('change', (info) => { fetchDataAndRender(); })
+            .on('error', (err) => { console.error('Replication Error:', err); });
+
+        await fetchDataAndRender();
+    } catch (error) {
+        console.error("Failed to initialize database:", error);
+    }
+}
+
+async function fetchDataAndRender() {
+    const result = await localDB.allDocs({ include_docs: true });
+    const filteredDocs = result.rows.map(row => row.doc).filter(doc => !doc._id.startsWith('_design/'));
     
+    const subjectDocs = filteredDocs.filter(doc => doc.type === 'subject');
+    const lessonDocs = filteredDocs.filter(doc => doc.type === 'lesson');
+    
+    subjects = subjectDocs.map(subject => ({
+        ...subject,
+        lessons: lessonDocs
+            .filter(lesson => lesson.subjectId === subject._id)
+            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    }));
+    
+    finishedLessons = lessonDocs.filter(lesson => lesson.ended);
+
+    render();
+}
+
+function generatePin() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function render() {
+    const now = new Date();
+    const subjectListContainer = document.getElementById("subjectList");
+
+    const existingSubjectIds = Array.from(subjectListContainer.children).map(c => c.id.replace('subjectDiv-', ''));
+    const currentSubjectIds = subjects.map(s => s._id);
+
+    existingSubjectIds.forEach(id => {
+        if (!currentSubjectIds.includes(id)) {
+            const removeDiv = document.getElementById(`subjectDiv-${id}`);
+            if (removeDiv) subjectListContainer.removeChild(removeDiv);
+        }
+    });
+
+
+    subjects.forEach(subject => {
+        let subjectDiv = document.getElementById(`subjectDiv-${subject._id}`);
+
+        if (!subjectDiv) {
+            subjectDiv = document.createElement("div");
+            subjectDiv.className = "subject";
+            subjectDiv.id = `subjectDiv-${subject._id}`;
+            subjectDiv.innerHTML = `<h3>${subject.name}</h3>`; 
+
+            const formDiv = document.createElement("div");
+            formDiv.className = "lessonForm";
+            formDiv.innerHTML = `
+                <input type="text" placeholder="Lesson Name" id="lessonName-${subject._id}">
+                <input type="datetime-local" id="lessonTime-${subject._id}">
+                <button onclick="addLesson('${subject._id}')">Add Lesson</button>
+            `;
+            subjectDiv.appendChild(formDiv);
+
+            const lessonListDiv = document.createElement("div");
+            lessonListDiv.id = `lessonList-${subject._id}`;
+            subjectDiv.appendChild(lessonListDiv);
+
+            subjectListContainer.appendChild(subjectDiv);
+        }
+        
+        const listDiv = document.getElementById(`lessonList-${subject._id}`);
+        listDiv.innerHTML = "";
+
+        subject.lessons.forEach(lesson => {
+            const lessonStart = new Date(lesson.startTime);
+            lesson.online = lessonStart <= now && !lesson.ended;
+
+            const lessonElement = document.createElement("div");
+            lessonElement.className = `lesson ${lesson.online ? "online" : "offline"}`;
+
+            const startTimeStr = lessonStart.toLocaleString();
+            let text = lesson.name;
+            
+            if (lesson.online) {
+                text += " (Online)";
+            } else if (lesson.ended) {
+                text += " (Finished)";
+            } else {
+                text += ` (Starts at ${startTimeStr})`;
+            }
+            
+            lessonElement.textContent = text;
+
+            if (lesson.online) {
+                lessonElement.onclick = () => showLiveLesson(subject, lesson); 
+            }
+            
+            listDiv.appendChild(lessonElement);
+        });
+    });
+
+    renderFinished();
+}
+
+function renderFinished() {
+    const container = document.getElementById("finishedLessons");
+    container.innerHTML = ""; 
+
+    finishedLessons.forEach(lesson => {
+        const div = document.createElement("div");
+        div.className = "FinishedLesson";
+        div.textContent = `${lesson.name} (Avg: ${lesson.avgRating || "-"})`; 
+        container.appendChild(div);
+    });
+}
+
+async function addSubject() {
+    const name = prompt("Enter the new subject name:");
+    if (!name) return; 
+
+    const newSubject = {
+        _id: `subject_${Date.now()}`, 
+        type: 'subject', 
+        name: name,
+    };
+
+    try {
+        await localDB.put(newSubject);
+    } catch (err) {
+        console.error("Failed to save subject:", err);
+    }
+}
+
+async function addLesson(subjectId) {
+    const nameInput = document.getElementById(`lessonName-${subjectId}`);
+    const timeInput = document.getElementById(`lessonTime-${subjectId}`);
+    const name = nameInput.value.trim();
+    const startTime = timeInput.value;
+
+    if (!name || !startTime) {
+        alert("Please enter both the lesson name and start time.");
+        return;
+    }
+
+    const newLesson = {
+        _id: `lesson_${Date.now()}`,
+        type: 'lesson',
+        subjectId: subjectId,
+        name,
+        pin: generatePin(),
+        startTime,
+        online: false,
+        ended: false,
+        avgRating: null,
+    };
+
+    try {
+
+        await localDB.put(newLesson);
+        nameInput.value = "";
+        timeInput.value = "";
+
+    } catch (err) {
+        console.error("Failed to save lesson:", err);
+    }
+}
+
+function showLiveLesson(subject, lesson) {
+    activeLesson = lesson;
+    document.getElementById("liveTitle").textContent = `${subject.name} - ${lesson.name}`;
+    document.getElementById("pin").textContent = lesson.pin;
+    document.getElementById("endFeedback").style.display = "inline-block";
+    document.getElementById("ViewLiveFeedback").style.display = "inline-block";
+
+    const url = `student.html?pin=${lesson.pin}`;
+    document.getElementById("link").textContent = url;
+
+    const qrCodeContainer = document.getElementById("qrCode");
+    qrCodeContainer.innerHTML = ""; 
+    qr = new QRCode(qrCodeContainer, url); 
+}
+
+async function endLesson() {
+
+    if (!activeLesson) return;
+
+    try {
+
+        const lessonDoc = await localDB.get(activeLesson._id); 
+
+        lessonDoc.ended = true;
+        lessonDoc.avgRating = "–";
+
+        await localDB.put(lessonDoc);
+
+        activeLesson = null;
+        document.getElementById("pin").textContent = "";
+        document.getElementById("qrCode").innerHTML = "";
+        document.getElementById("link").textContent = "";
+        document.getElementById("endFeedback").style.display = "none";
+        document.getElementById("ViewLiveFeedback").style.display = "none";
+        document.getElementById("liveTitle").textContent = "Select an online lesson";
+        
+        render(); 
+
+    } catch (error) {
+        console.error("Failed to end lesson:", error);
+    }
+}
+
+function openLiveFeedback() {
+    if (!activeLesson) {
+        alert("No active lesson selected!");
+        return;
+    }
+    const pin = activeLesson.pin;
+    window.open(`liveView.html?pin=${pin}`, "_blank");
+}
+
+function logout() {
+    window.location.href = "sign.html?role=Tutor"
+}
+
+SyncFunc();
+
+setInterval(fetchDataAndRender, 5000);
+
+</script>
+
 </body>
 </html>
