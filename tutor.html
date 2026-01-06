@@ -230,11 +230,11 @@ async function SyncFunc() {
             live: true,
             retry: true})
             .on('change', (info) => { fetchDataAndRender(); })
-            .on('error', (err) => { console.error('Replication Error:', err); });
+            .on('error', (err) => { console.error('Sync Error:', err); });
 
         await fetchDataAndRender();
     } catch (error) {
-        console.error("Failed to initialize database:", error);
+        console.error("Database error: ", error);
     }
 }
 
@@ -264,16 +264,15 @@ function generatePin() {
 function render() {
     const now = new Date();
     const subjectListContainer = document.getElementById("subjectList");
+    const subjectDivs = subjectListContainer.children;
 
-    const existingSubjectIds = Array.from(subjectListContainer.children).map(c => c.id.replace('subjectDiv-', ''));
-    const currentSubjectIds = subjects.map(s => s._id);
-
-    existingSubjectIds.forEach(id => {
-        if (!currentSubjectIds.includes(id)) {
-            const removeDiv = document.getElementById(`subjectDiv-${id}`);
-            if (removeDiv) subjectListContainer.removeChild(removeDiv);
+    for (let div of subjectDivs) {
+        const subjectId = div.id.replace("subjectDiv-", "");
+        const stillExists = subjects.some(s => s._id === subjectId);
+        if (!stillExists) {
+        subjectListContainer.removeChild(div);
         }
-    });
+    }
 
 
     subjects.forEach(subject => {
@@ -348,7 +347,7 @@ function renderFinished() {
 }
 
 async function addSubject() {
-    const name = prompt("Enter the new subject name:");
+    const name = prompt("Enter Subject name:");
     if (!name) return; 
     
     const newSubject = {
