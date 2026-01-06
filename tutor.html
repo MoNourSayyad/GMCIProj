@@ -350,7 +350,7 @@ function renderFinished() {
 async function addSubject() {
     const name = prompt("Enter the new subject name:");
     if (!name) return; 
-
+    
     const newSubject = {
         _id: `subject_${Date.now()}`, 
         type: 'subject', 
@@ -398,8 +398,19 @@ async function addLesson(subjectId) {
     }
 }
 
-function showLiveLesson(subject, lesson) {
+async function showLiveLesson(subject, lesson) {
     activeLesson = lesson;
+
+    try {
+        const doc = await localDB.get(lesson._id);
+        if (!doc.online) {
+            doc.online = true;
+            await localDB.put(doc);
+        }
+    } catch (err) {
+        console.error("Failed to mark lesson online:", err);
+    }
+
     document.getElementById("liveTitle").textContent = `${subject.name} - ${lesson.name}`;
     document.getElementById("pin").textContent = lesson.pin;
     document.getElementById("endFeedback").style.display = "inline-block";
@@ -422,8 +433,8 @@ async function endLesson() {
         const lessonDoc = await localDB.get(activeLesson._id); 
 
         lessonDoc.ended = true;
-        lessonDoc.avgRating = "–";
-
+        lessonDoc.avgRating = "-";
+        lessonDoc.online = false;
         await localDB.put(lessonDoc);
 
         activeLesson = null;
