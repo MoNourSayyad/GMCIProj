@@ -264,6 +264,7 @@ function generatePin() {
 function render() {
     const now = new Date();
     const subjectListContainer = document.getElementById("subjectList");
+
     const subjectDivs = subjectListContainer.children;
 
     for (let div of subjectDivs) {
@@ -275,7 +276,7 @@ function render() {
     }
 
 
-    subjects.forEach(subject => {
+    subjects.forEach(subject => {  
         let subjectDiv = document.getElementById(`subjectDiv-${subject._id}`);
 
         if (!subjectDiv) {
@@ -314,11 +315,11 @@ function render() {
             let text = lesson.name;
             
             if (lesson.online) {
-                text += " (Online)";
+                text += ": Online";
             } else if (lesson.ended) {
-                text += " (Finished)";
+                text += ": Finished";
             } else {
-                text += ` (Starts at ${startTimeStr})`;
+                text += `: Starts at ${startTimeStr})`;
             }
             
             lessonElement.textContent = text;
@@ -341,7 +342,7 @@ function renderFinished() {
     finishedLessons.forEach(lesson => {
         const div = document.createElement("div");
         div.className = "FinishedLesson";
-        div.textContent = `${lesson.name} (Avg: ${lesson.avgRating || "-"})`; 
+        div.textContent = `${lesson.name} ~ Avgerage: ${lesson.avgRating}`; 
         container.appendChild(div);
     });
 }
@@ -378,9 +379,9 @@ async function addLesson(subjectId) {
         _id: `lesson_${Date.now()}`,
         type: 'lesson',
         subjectId: subjectId,
-        name,
+        name: name,
         pin: generatePin(),
-        startTime,
+        startTime: startTime,
         online: false,
         ended: false,
         avgRating: null,
@@ -407,10 +408,10 @@ async function showLiveLesson(subject, lesson) {
             await localDB.put(doc);
         }
     } catch (err) {
-        console.error("Failed to mark lesson online:", err);
+        console.error("Failed to mark online: ", err);
     }
 
-    document.getElementById("liveTitle").textContent = `${subject.name} - ${lesson.name}`;
+    document.getElementById("liveTitle").textContent = `${subject.name}: ${lesson.name}`;
     document.getElementById("pin").textContent = lesson.pin;
     document.getElementById("endFeedback").style.display = "inline-block";
     document.getElementById("ViewLiveFeedback").style.display = "inline-block";
@@ -452,10 +453,6 @@ async function endLesson() {
 }
 
 function openLiveFeedback() {
-    if (!activeLesson) {
-        alert("No active lesson selected!");
-        return;
-    }
     const pin = activeLesson.pin;
     window.open(`liveView.html?pin=${pin}`, "_blank");
 }

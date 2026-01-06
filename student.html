@@ -78,9 +78,9 @@ button:hover {
 <h1>Student Feedback</h1>
 
 <div id="pinEntry">
-    <p>Enter Lesson PIN to participate:</p>
-    <input type="text" id="lessonPin" placeholder="Enter the digit PIN or scan QR code">
-    <button onclick="joinLesson()">Join Lesson</button>
+    <p>Enter PIN to participate:</p>
+    <input type="text" id="lessonPin" placeholder="Enter the PIN or scan QR code">
+    <button onclick="joinLesson()">Join</button>
 </div>
 
 <div class="feedback-container" id="feedbackForm" style="display:none;">
@@ -110,8 +110,8 @@ const questions = [
     { text: "How well did you understand the lesson?", min: 1, max: 5 }
 ];
 
-const params = new URLSearchParams(window.location.search);
-if (params.has("pin")) {
+const parameter = new URLSearchParams(window.location.search);
+if (parameter.has("pin")) {
     document.getElementById("lessonPin").value = params.get("pin");
     joinLesson();
 }
