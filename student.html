@@ -49,11 +49,11 @@ button:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.feedback-item { 
+.feedbackItem { 
   margin-bottom: 15px; 
 }
 
-.feedback-item label { 
+.feedbackItem label { 
   display: block; 
   margin-bottom: 5px; 
   font-weight: 500; 
@@ -112,8 +112,7 @@ const questions = [
 
 const parameter = new URLSearchParams(window.location.search);
 if (parameter.has("pin")) {
-    document.getElementById("lessonPin").value = params.get("pin");
-    joinLesson();
+    document.getElementById("lessonPin").value = parameter.get("pin");
 }
 
 async function joinLesson() {
@@ -125,15 +124,15 @@ async function joinLesson() {
 
     const result = await sessionsDB.allDocs({ include_docs: true });
     const lessons = result.rows
-        .map(r => r.doc)
-        .filter(d => d.type === "lesson");
+        .map(row => row.doc)
+        .filter(doc => !doc._id.startsWith('_design/') && doc.type === "lesson"); // we always filter docs with _design/ (irrelevant filse in CouchDB).
 
     lessonDoc = lessons.find(
         l => l.pin === pinInput && !l.ended && new Date(l.startTime) <= new Date()
     );
-
+ 
     if (!lessonDoc) {
-        alert("Invalid or inactive lesson PIN");
+        alert("Invalid or inactive PIN");
         return;
     }
 
@@ -149,19 +148,19 @@ function renderQuestions() {
 
     questions.forEach((q, i) => {
         const div = document.createElement("div");
-        div.className = "feedback-item";
+        div.className = "feedbackItem";
         div.innerHTML = `
-            <label>${q.text}</label>
+            <label>${q.text}</label>   
             <select id="q${i}">
                 ${Array.from({ length: q.max }, (_, n) =>
                     `<option value="${n + 1}">${n + 1}</option>`
                 ).join("")}
             </select>
-        `;
+        `;  // we can also use for loops manually, but honeslty map/from functions make things shorter, however kinda unclearer :)
         container.appendChild(div);
     });
 
-    document.getElementById("feedbackForm").style.display = "block";
+    document.getElementById("feedbackForm").style.display = "inline-block";
 }
 
 async function submitFeedback() {
@@ -193,7 +192,7 @@ async function submitFeedback() {
         document.getElementById("status").textContent = "Your feedback is sent.";
     } catch (err) {
         console.error("Failed to save feedback:", err);
-        alert("Error submitting feedback. Please try again.");
+        alert("Error submitting feedback.");
     }
 }
 </script>

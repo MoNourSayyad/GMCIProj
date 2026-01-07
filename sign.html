@@ -163,8 +163,6 @@
                 roleTitle.innerHTML = "Tutor Portal";
             else if(role === "Student")
                 roleTitle.innerHTML = "Student Portal";
-            else
-                roleTitle.innerHTML = "Welcome!"
         }
         
         const localDB = new PouchDB("users");
@@ -181,6 +179,24 @@
             }
 
             try {
+                const allDocs = await localDB.allDocs({ include_docs: true });
+                const existingEmail = allDocs.rows
+                    .map(row => row.doc)
+                    .find(doc => doc.email === signupEmail.value);
+
+                    if (existingEmail) {
+                        alert("Email already registered.");
+                        return;
+                    }
+                const existinguserName = allDocs.rows
+                    .map(row => row.doc)
+                    .find(doc => doc.username === signupUser.value);
+
+                    if (existinguserName) {
+                        alert("Username already registered.");
+                        return;
+                    }
+
                 await localDB.put({
                     _id: "user_" + signupUser.value,
                     username: signupUser.value,
@@ -193,9 +209,6 @@
                 showLogin();
                 signupForm.reset();
             } catch (error) {
-                if (error.status === 409)
-                    alert("Username already exists");
-                else
                     alert("Error creating account: " + error.name); 
             }
         });
@@ -220,8 +233,6 @@
                     window.location.href = "tutor.html"
                 else if (role === "Student")
                     window.location.href = "student.html"
-                else  // Safety procedure honeslty
-                    alert("Who are you?? // log in  successful but maybe redirection error tho.");
             }catch (error){
                 if (error.status == 404)
                     alert("User not found");

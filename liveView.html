@@ -26,7 +26,7 @@ h1 {
     padding: 20px;
 }
 
-.feedback-item {
+.feedbackItem {
     display: flex;
     justify-content: space-between;
     padding: 10px 12px;
@@ -80,8 +80,8 @@ async function fetchFeedback() {
     const result = await localDB.allDocs({ include_docs: true });
 
     const responses = result.rows
-        .map(r => r.doc)
-        .filter(doc => doc.type === "response" && doc.lessonPin === activePin);
+        .map(row => row.doc)
+        .filter(doc => !doc._id.startsWith('_design/') && doc.type === "response" && doc.lessonPin === activePin);
 
     const container = document.getElementById("feedbackContainer");
     container.innerHTML = "";
@@ -92,25 +92,25 @@ async function fetchFeedback() {
     }
 
     document.getElementById("status").textContent =
-        `Live responses: ${responses.length}`;
+        `Responses sent: ${responses.length}`;
 
     const stats = {};
 
-    responses.forEach(r => {
-        r.answers.forEach(a => {
-            if (!stats[a.question]) {
-                stats[a.question] = { total: 0, count: 0 };
+    responses.forEach(row => {
+        row.answers.forEach(answer => {
+            if (!stats[answer.question]) {
+                stats[answer.question] = { total: 0, count: 0 };
             }
-            stats[a.question].total += a.value;
-            stats[a.question].count += 1;
+            stats[answer.question].total += answer.value;
+            stats[answer.question].count += 1;
         });
     });
 
-    Object.entries(stats).forEach(([question, data]) => {
+    Object.entries(stats).forEach(([question, data]) => {  //{ [key,value] , [key,value] } :)
         const avg = (data.total / data.count).toFixed(1);
 
         const div = document.createElement("div");
-        div.className = "feedback-item";
+        div.className = "feedbackItem";
         div.innerHTML = `
             <span>${question}</span>
             <span class="star">${avg} ★</span>
@@ -119,11 +119,23 @@ async function fetchFeedback() {
     });
 }
 
-localDB.sync(remoteDB, { live: true, retry: true })
-    .on("change", fetchFeedback)
-    .on("error", err => console.error("Sync error", err));
+async function SyncFunc() {
+    try {
+        
+        localDB.sync(remoteDB, { live: true, retry: true })
+            .on('change', () => { fetchFeedback(); })
+            .on('error', err => { console.error('Sync Error:', err); });
 
-fetchFeedback();
+        await fetchFeedback();
+    } catch (error) {
+            console.error("Database error:", error);
+    }
+}
+
+SyncFunc();
+
+setInterval(fetchFeedback, 2000);
+
 </script>
 
 </body>
