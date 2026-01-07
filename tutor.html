@@ -229,8 +229,12 @@ async function SyncFunc() {
         localDB.sync(remoteDB, {
             live: true,
             retry: true})
-            .on('change', (info) => { fetchDataAndRender(); })
             .on('error', (err) => { console.error('Sync Error:', err); });
+
+        localDB.changes({
+            live: true,
+            since: 'now'})
+            .on('change', fetchDataAndRender);
 
         await fetchDataAndRender();
     } catch (error) {
@@ -460,7 +464,7 @@ function logout() {
 
 SyncFunc();
 
-setInterval(fetchDataAndRender, 3000);
+setInterval(fetchDataAndRender, 15000);
 
 </script>
 

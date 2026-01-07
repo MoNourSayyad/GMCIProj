@@ -75,9 +75,6 @@ const remoteResponsesDB = new PouchDB("http://localhost:5984/responses");
 const localSessionsDB = new PouchDB("sessions");
 const remoteSessionsDB = new PouchDB("http://localhost:5984/sessions");
 
-localResponsesDB.sync(remoteResponsesDB, { live: true, retry: true });
-localSessionsDB.sync(remoteSessionsDB, { live: true, retry: true });
-
 const activePin = new URLSearchParams(window.location.search).get("pin");
 
 async function fetchFeedback() {
@@ -155,12 +152,19 @@ async function SyncFunc() {
 
     try {
         localResponsesDB.sync(remoteResponsesDB, { live: true, retry: true })
-            .on("change", fetchFeedback)
             .on("error", err => console.error("Responses sync error", err));
 
         localSessionsDB.sync(remoteSessionsDB, { live: true, retry: true })
-            .on("change", fetchFeedback)
             .on("error", err => console.error("Sessions sync error", err));
+        localResponsesDB.changes({
+                live: true,
+                since: 'now'})
+                .on('change', fetchFeedback);
+
+        localSessionsDB.changes({
+            live: true,
+            since: 'now'})
+            .on('change', fetchFeedback);
             
         await fetchFeedback();
     } catch (error) {
@@ -169,8 +173,7 @@ async function SyncFunc() {
 }
 
 SyncFunc();
-
-setInterval(fetchFeedback, 8000);
+setInterval(fetchFeedback, 15000);
 
 </script>
 
