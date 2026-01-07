@@ -69,15 +69,19 @@ h1 {
 
 
 <script>
-const localDB = new PouchDB("responses");
-const remoteDB = new PouchDB("http://localhost:5984/responses");
+const localResponsesDB = new PouchDB("responses");
+const remoteResponsesDB = new PouchDB("http://localhost:5984/responses");
 
-localDB.sync(remoteDB, { live: true, retry: true });
+const localSessionsDB = new PouchDB("sessions");
+const remoteSessionsDB = new PouchDB("http://localhost:5984/sessions");
+
+localResponsesDB.sync(remoteResponsesDB, { live: true, retry: true });
+localSessionsDB.sync(remoteSessionsDB, { live: true, retry: true });
 
 const activePin = new URLSearchParams(window.location.search).get("pin");
 
 async function fetchFeedback() {
-    const result = await localDB.allDocs({ include_docs: true });
+    const result = await localResponsesDB.allDocs({ include_docs: true });
 
     const responses = result.rows
         .map(row => row.doc)
@@ -95,6 +99,8 @@ async function fetchFeedback() {
         `Responses sent: ${responses.length}`;
 
     const stats = {};
+    let lessonTotal = 0;
+    let lessonCount = 0;
 
     responses.forEach(row => {
         row.answers.forEach(answer => {
@@ -103,8 +109,34 @@ async function fetchFeedback() {
             }
             stats[answer.question].total += answer.value;
             stats[answer.question].count += 1;
+
+            lessonTotal += answer.value;
+            lessonCount += 1;
         });
     });
+
+    const lessonAverage = (lessonTotal / lessonCount).toFixed(1);
+    const avgDiv = document.createElement("div");
+    avgDiv.className = "feedbackItem";
+    avgDiv.innerHTML = `
+        <strong style= "color:red; font-size:28px">Lesson Average: </strong>
+        <span class="star">${lessonAverage} ★</span>
+    `;
+    const allDocsSession = await localSessionsDB.allDocs({ include_docs: true });
+    const lesson = allDocsSession.rows
+        .map(row => row.doc)
+        .find(doc => !doc._id.startsWith("_design/") && doc.type === "lesson" && doc.pin === activePin);
+
+    if (lesson) {
+        const newAvg = Number (lessonAverage);
+
+        if (lesson.avgRating !== newAvg) {
+            lesson.avgRating = newAvg;
+            await localSessionsDB.put(lesson);
+        }
+    }
+
+    container.appendChild(avgDiv);
 
     Object.entries(stats).forEach(([question, data]) => {  //{ [key,value] , [key,value] } :)
         const avg = (data.total / data.count).toFixed(1);
@@ -120,12 +152,16 @@ async function fetchFeedback() {
 }
 
 async function SyncFunc() {
-    try {
-        
-        localDB.sync(remoteDB, { live: true, retry: true })
-            .on('change', () => { fetchFeedback(); })
-            .on('error', err => { console.error('Sync Error:', err); });
 
+    try {
+        localResponsesDB.sync(remoteResponsesDB, { live: true, retry: true })
+            .on("change", fetchFeedback)
+            .on("error", err => console.error("Responses sync error", err));
+
+        localSessionsDB.sync(remoteSessionsDB, { live: true, retry: true })
+            .on("change", fetchFeedback)
+            .on("error", err => console.error("Sessions sync error", err));
+            
         await fetchFeedback();
     } catch (error) {
             console.error("Database error:", error);
@@ -134,7 +170,7 @@ async function SyncFunc() {
 
 SyncFunc();
 
-setInterval(fetchFeedback, 2000);
+setInterval(fetchFeedback, 8000);
 
 </script>
 
