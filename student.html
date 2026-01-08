@@ -109,11 +109,7 @@
       const questions = [
         { text: "How do you rate the class today?", min: 1, max: 5 },
         { text: "Did the lecture cover the whole topic?", min: 1, max: 5 },
-        {
-          text: "Was the teacher's explanation tempo appropriate?",
-          min: 1,
-          max: 5,
-        },
+        { text: "Was the teacher's explanation tempo appropriate?", min: 1, max: 5 },
         { text: "How well did you understand the lesson?", min: 1, max: 5 },
       ];
 
@@ -136,12 +132,7 @@
             (doc) => !doc._id.startsWith("_design/") && doc.type === "lesson"
           ); // we always filter docs with _design/ (irrelevant filse in CouchDB).
 
-        lessonDoc = lessons.find(
-          (l) =>
-            l.pin === pinInput &&
-            !l.ended &&
-            new Date(l.startTime) <= new Date()
-        );
+        lessonDoc = lessons.find((l) => l.pin === pinInput && !l.ended && new Date(l.startTime) <= new Date());
 
         if (!lessonDoc) {
           alert("Invalid or inactive PIN");
@@ -154,6 +145,33 @@
         renderQuestions();
       }
 
+      async function getCurrentUser() {
+        const username = localStorage.getItem("loggedInUsername");
+
+        if(!username) {
+          alert("U gotta log in to participate");
+          return null;
+        }
+
+        try {
+          const userDB = new PouchDB("users");
+
+        }catch(error) {
+          
+        }
+
+      }
+
+      async function cryptOfID(user) {
+        const raw = user._id;
+        const data = new TextEncoder().encode(raw); // encodes it into bytes (Uint8 Array).
+        const hash = await crypto.subtle.digest("SHA-256", data); // encrypts it to 256 bits, returns it in binary as ArrayBuffer.
+
+        return Array.from(new Uint8Array(hash))   // converts the raw bytes to typed array of bytes (0-256) then to a javascript arra, then each mapped to a string of hexadeciaml and each with 2 hex digits.
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+
       function renderQuestions() {
         const container = document.getElementById("questionsContainer");
         container.innerHTML = "";
@@ -164,12 +182,13 @@
           div.innerHTML = `
             <label>${q.text}</label>   
             <select id="q${i}">
-                ${Array.from(
-                  { length: q.max },
-                  (_, n) => `<option value="${n + 1}">${n + 1}</option>`
-                ).join("")}
-            </select>
-        `; // we can also use for loops manually, but honeslty map/from functions make things shorter, however kinda unclearer :)
+                ${Array.from({ length: q.max },(_, n) => 
+                `<option value="${n + 1}">${n + 1}
+                  </option>`)
+                  .join("")} 
+                  </select>
+            `; // we can also use for loops manually, but honeslty map/from functions make things shorter, however kinda unclearer :)
+
           container.appendChild(div);
         });
 

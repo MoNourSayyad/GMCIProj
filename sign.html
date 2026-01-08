@@ -167,8 +167,9 @@
         
         const localDB = new PouchDB("users");
         const remoteDB = new PouchDB("http://localhost:5984/users");
+        
         localDB.sync(remoteDB, {live:true, retry: true})
-            .on('error', function (err) { console.error("Sync Error (Check CouchDB and CORS):", err) });
+            .on('error', function (err) { console.error("Sync Error:", err) });
 
         signupForm.addEventListener("submit", async e => {
             e.preventDefault();
@@ -178,33 +179,33 @@
                 return;
             }
 
+            const username = signupUser.value.trim();
+            const email = signupEmail.value.trim().toLowerCase();
+            
+
             try {
                 const allDocs = await localDB.allDocs({ include_docs: true });
-                const existingEmail = allDocs.rows
+            
+                const existingUser = allDocs.rows
                     .map(row => row.doc)
-                    .find(doc => doc.email === signupEmail.value);
+                    .find(doc => doc.username === username || doc.email.toLowerCase() === email);
 
-                    if (existingEmail) {
-                        alert("Email already registered.");
-                        return;
-                    }
-                const existinguserName = allDocs.rows
-                    .map(row => row.doc)
-                    .find(doc => doc.username === signupUser.value);
+                if (existingUser) {
+                    alert("Username/Email already registered");
+                    return;
+                }
 
-                    if (existinguserName) {
-                        alert("Username already registered.");
-                        return;
-                    }
 
                 await localDB.put({
-                    _id: "user_" + signupUser.value,
-                    username: signupUser.value,
-                    email: signupEmail.value,
+                    _id: "user_" + username,
+                    username: username,
+                    email: email,
                     password: signupPass.value,
                     role: role
                 });
-                
+
+                await localDB.replicate.to(remoteDB);
+
                 alert("Account created! You can log in.");
                 showLogin();
                 signupForm.reset();
@@ -228,6 +229,8 @@
                     alert(`Wrong Portal. U are a ${user.role}`);
                     return;
                 }
+                
+                localStorage.setItem("loggedInUsername", user.username);
 
                 if (role === "Tutor")
                     window.location.href = "tutor.html"
