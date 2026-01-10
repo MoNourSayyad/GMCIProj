@@ -73,7 +73,7 @@
       }
     </style>
   </head>
-  <body>
+  <body style="display: none;">
     <h1>Student Feedback</h1>
 
     <div id="pinEntry">
@@ -94,6 +94,15 @@
     <p id="status"></p>
 
     <script>
+  if (localStorage.getItem("loggedInUsername")) {
+    document.body.style.display = "block";
+  } else {
+    window.location.replace("sign.html?role=Student");
+    alert("U must be logged in");
+  }
+</script>
+    <script>
+
       const responsesDB = new PouchDB("responses");
       const responsesRemote = new PouchDB("http://localhost:5984/responses");
 
@@ -132,7 +141,9 @@
             (doc) => !doc._id.startsWith("_design/") && doc.type === "lesson"
           ); // we always filter docs with _design/ (irrelevant filse in CouchDB).
 
-        lessonDoc = lessons.find((l) => l.pin === pinInput && !l.ended && new Date(l.startTime) <= new Date());
+        lessonDoc = lessons.find((lesson) => lesson.pin === pinInput && 
+          !lesson.ended && 
+          new Date(lesson.startTime) <= new Date());
 
         if (!lessonDoc) {
           alert("Invalid or inactive PIN");
@@ -155,11 +166,14 @@
 
         try {
           const userDB = new PouchDB("users");
+          const userDoc =  await userDB.get("user_" + username);
+          return userDoc;
 
         }catch(error) {
-          
+          console.error("Failed to load user: " + error);
+          alert("Coudlnt load data");
+          return null;
         }
-
       }
 
       async function cryptOfID(user) {
@@ -198,6 +212,18 @@
       async function submitFeedback() {
         if (!lessonPin || !lessonDoc) return;
 
+        const user = await getCurrentUser();
+        if(!user) return;
+        const anonID = await cryptOfID(user);
+
+        const existing = await responsesDB.get(`response_${lessonPin}_${anonID}`)
+          .catch(() => null);
+
+        if(existing) {
+          alert("Feddback already submitted once.");
+          return;
+        }
+
         const answers = [];
 
         for (let i = 0; i < questions.length; i++) {
@@ -209,7 +235,7 @@
         }
 
         const responseDoc = {
-          _id: `response_${lessonPin}_${Date.now()}`,
+          _id: `response_${lessonPin}_${anonID}`,
           type: "response",
           lessonPin: lessonPin,
           lessonId: lessonDoc._id,
