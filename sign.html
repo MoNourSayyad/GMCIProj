@@ -171,6 +171,15 @@
         localDB.sync(remoteDB, {live:true, retry: true})
             .on('error', function (err) { console.error("Sync Error:", err) });
 
+        async function cryptoPass(pass) {
+            const data = new TextEncoder().encode(pass); // encodes it into bytes (Uint8 Array).
+            const hash = await crypto.subtle.digest("SHA-256", data); // encrypts it to 256 bits, returns it in binary as ArrayBuffer.
+
+            return Array.from(new Uint8Array(hash))   // converts the raw bytes to typed array of bytes (0-256) then to a javascript arra, then each mapped to a string of hexadeciaml and each with 2 hex digits.
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join("");
+        }
+
         signupForm.addEventListener("submit", async e => {
             e.preventDefault();
 
@@ -195,12 +204,13 @@
                     return;
                 }
 
+                const cryptedPass = await cryptoPass(signupPass.value);
 
                 await localDB.put({
                     _id: "user_" + username,
                     username: username,
                     email: email,
-                    password: signupPass.value,
+                    password: cryptedPass,
                     role: role
                 });
 
@@ -220,7 +230,9 @@
             try {
                 const user = await localDB.get("user_" + loginUser.value);
 
-                if (user.password !== loginPass.value) {
+                const hashedLoginPass = await cryptoPass(loginPass.value);
+
+                if (user.password !== hashedLoginPass) {
                     alert("Wrong Pass.");
                     return;
                 }
@@ -230,12 +242,13 @@
                     return;
                 }
                 
-                localStorage.setItem("loggedInUsername", user.username);
 
                 if (role === "Tutor")
                     window.location.href = "tutor.html"
-                else if (role === "Student")
-                    window.location.href = "student.html"
+                else if (role === "Student") {
+                    localStorage.setItem("loggedInUsername", user.username);
+                    window.location.href = "student.html";
+                }
             }catch (error){
                 if (error.status == 404)
                     alert("User not found");

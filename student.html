@@ -74,7 +74,10 @@
     </style>
   </head>
   <body style="display: none;">
-    <h1>Student Feedback</h1>
+    <div class="container" style="display: flex; align-items: center; justify-content: center;">
+    <h1 style="align-items: center; color: #2980b9; display: inline-block;">Student Feedback</h1>
+    <button onclick="logout()">Logout</button>
+    </div>
 
     <div id="pinEntry">
       <p>Enter PIN to participate:</p>
@@ -97,10 +100,10 @@
   if (localStorage.getItem("loggedInUsername")) {
     document.body.style.display = "block";
   } else {
-    window.location.replace("sign.html?role=Student");
     alert("U must be logged in");
+    window.location.replace("sign.html?role=Student");
   }
-</script>
+  </script>
     <script>
 
       const responsesDB = new PouchDB("responses");
@@ -159,10 +162,8 @@
       async function getCurrentUser() {
         const username = localStorage.getItem("loggedInUsername");
 
-        if(!username) {
-          alert("U gotta log in to participate");
-          return null;
-        }
+        if(!username) return null;
+        
 
         try {
           const userDB = new PouchDB("users");
@@ -213,7 +214,11 @@
         if (!lessonPin || !lessonDoc) return;
 
         const user = await getCurrentUser();
-        if(!user) return;
+        if(!user) {
+          alert("Session expired. Please log in again.");
+          logout();
+          return;
+        }
         const anonID = await cryptOfID(user);
 
         const existing = await responsesDB.get(`response_${lessonPin}_${anonID}`)
@@ -223,7 +228,7 @@
           alert("Feddback already submitted once.");
           return;
         }
-
+        
         const answers = [];
 
         for (let i = 0; i < questions.length; i++) {
@@ -242,7 +247,7 @@
           answers: answers,
           createdAt: new Date().toISOString(),
         };
-
+        
         try {
           await responsesDB.put(responseDoc);
 
@@ -254,6 +259,12 @@
           alert("Error submitting feedback.");
         }
       }
+
+      function logout() {
+        localStorage.clear();
+        window.location.replace("sign.html?role=Student");
+      }
+      
     </script>
   </body>
 </html>
