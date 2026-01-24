@@ -40,7 +40,6 @@ if (!lessonId) alert("Lesson ID missing!");
 const responsesDB = new PouchDB("responses");
 const sessionsDB = new PouchDB("sessions");
 
-// ⭐ Bar Chart: Star Ratings Distribution
 async function renderStarBarChart(lessonId) {
     const responsesDB = new PouchDB("responses");
 
@@ -54,7 +53,6 @@ async function renderStarBarChart(lessonId) {
         return;
     }
 
-    // Count votes per star
     const starCounts = [0, 0, 0, 0, 0];
     lessonResponses.forEach(r => {
         r.answers.forEach(a => {
@@ -62,7 +60,6 @@ async function renderStarBarChart(lessonId) {
         });
     });
 
-    // Round counts to nearest multiple of 2
     const roundedCounts = starCounts.map(c => Math.round(c / 2) * 2);
 
     const ctx = document.getElementById("barChart").getContext("2d");
@@ -86,9 +83,9 @@ async function renderStarBarChart(lessonId) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    stepSize: 2, // increments of 2 votes
+                    stepSize: 2, 
                     precision: 0,
-                    max: Math.max(...roundedCounts, 4) + 2 // dynamic max but not too small
+                    max: Math.max(...roundedCounts, 4) + 2 
                 }
             },
             plugins: {
@@ -98,11 +95,9 @@ async function renderStarBarChart(lessonId) {
         }
     });
 
-    // Set a fixed chart height for mobile
     document.getElementById("barChart").parentElement.style.height = "300px";
 }
 
-// 📈 Line Chart: Lesson Average Comparison
 async function renderLessonLineChart(lessonId) {
     const sessionsDB = new PouchDB("sessions");
     const lessonDoc = await sessionsDB.get(lessonId);
