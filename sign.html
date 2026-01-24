@@ -132,8 +132,8 @@
         
         const url = new URLSearchParams(window.location.search);
         const role = url.get("role");
+
         const roleTitle = document.getElementById("roleTitle");
-        
         const loginUser = document.getElementById('loginUser');
         const loginPass = document.getElementById('loginPass');
         const signupUser = document.getElementById('signupUser');
@@ -169,20 +169,21 @@
         const remoteDB = new PouchDB("http://localhost:5984/users");
         
         localDB.sync(remoteDB, {live:true, retry: true})
-            .on('error', function (err) { console.error("Sync Error:", err) });
+            .on('error', function (err) {
+                            console.error("Sync Error:", err) });
+
 
         async function cryptoPass(pass) {
             const data = new TextEncoder().encode(pass); // encodes it into bytes (Uint8 Array).
             const hash = await crypto.subtle.digest("SHA-256", data); // encrypts it to 256 bits, returns it in binary as ArrayBuffer.
-
             return Array.from(new Uint8Array(hash))   // converts the raw bytes to typed array of bytes (0-256) then to a javascript arra, then each mapped to a string of hexadeciaml and each with 2 hex digits.
-            .map(b => b.toString(16).padStart(2, "0"))
-            .join("");
+                        .map(b => b.toString(16).padStart(2, "0"))
+                        .join("");
         }
-
+        
         signupForm.addEventListener("submit", async e => {
             e.preventDefault();
-
+            
             if (signupPass.value !== signupConf.value) {
                 alert("Passwords dont match!");
                 return;
@@ -197,23 +198,23 @@
             
                 const existingUser = allDocs.rows
                     .map(row => row.doc)
-                    .find(doc => doc.username === username || doc.email.toLowerCase() === email);
+                    .find(doc => doc.username === username || doc.email && doc.email.toLowerCase() === email);
 
                 if (existingUser) {
                     alert("Username/Email already registered");
                     return;
                 }
 
-                const cryptedPass = await cryptoPass(signupPass.value);
+                const hashedPassword = await cryptoPass(signupPass.value);
 
                 await localDB.put({
                     _id: "user_" + username,
                     username: username,
                     email: email,
-                    password: cryptedPass,
+                    passwordHash: hashedPassword,
                     role: role
                 });
-
+ 
                 await localDB.replicate.to(remoteDB);
 
                 alert("Account created! You can log in.");
@@ -230,9 +231,9 @@
             try {
                 const user = await localDB.get("user_" + loginUser.value);
 
-                const hashedLoginPass = await cryptoPass(loginPass.value);
+                const inputHash = await cryptoPass(loginPass.value);
 
-                if (user.password !== hashedLoginPass) {
+                if (user.passwordHash !== inputHash) {
                     alert("Wrong Pass.");
                     return;
                 }
@@ -243,8 +244,11 @@
                 }
                 
 
-                if (role === "Tutor")
+                if (role === "Tutor"){
                     window.location.href = "tutor.html"
+                    localStorage.setItem("loggedInUsername", user.username);
+
+                }
                 else if (role === "Student") {
                     localStorage.setItem("loggedInUsername", user.username);
                     window.location.href = "student.html";

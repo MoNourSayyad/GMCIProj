@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lesson Diagram</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; text-align:center; background:#f4f4f4; }
+    h2 { color: #2c3e50; margin-bottom: 20px; }
+    .chart-container {
+        width: 95%;
+        max-width: 600px;
+        margin: 0 auto 40px auto;
+        background:white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    canvas { width: 100% !important; height: auto !important; }
+</style>
+</head>
+<body>
+<h2 id="lessonTitle">Lesson Diagram</h2>
+
+<div class="chart-container">
+    <canvas id="barChart"></canvas>
+</div>
+
+<div class="chart-container">
+    <canvas id="lineChart"></canvas>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const lessonId = urlParams.get("lessonId");
+
+if (!lessonId) alert("Lesson ID missing!");
+
+const responsesDB = new PouchDB("responses");
+const sessionsDB = new PouchDB("sessions");
+
+// ⭐ Bar Chart: Star Ratings Distribution
+async function renderStarBarChart(lessonId) {
+    const responsesDB = new PouchDB("responses");
+
+    const allResponses = await responsesDB.allDocs({ include_docs: true });
+    const lessonResponses = allResponses.rows
+        .map(r => r.doc)
+        .filter(r => r.type === "response" && r.lessonId === lessonId);
+
+    if (lessonResponses.length === 0) {
+        alert("No feedback yet!");
+        return;
+    }
+
+    // Count votes per star
+    const starCounts = [0, 0, 0, 0, 0];
+    lessonResponses.forEach(r => {
+        r.answers.forEach(a => {
+            if (a.value >= 1 && a.value <= 5) starCounts[a.value - 1] += 1;
+        });
+    });
+
+    // Round counts to nearest multiple of 2
+    const roundedCounts = starCounts.map(c => Math.round(c / 2) * 2);
+
+    const ctx = document.getElementById("barChart").getContext("2d");
+    if (window.starBarChart) window.starBarChart.destroy();
+
+    window.starBarChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"],
+            datasets: [{
+                label: "Votes",
+                data: roundedCounts,
+                backgroundColor: "rgba(46, 204, 113, 0.7)",
+                borderColor: "rgba(46, 204, 113, 1)",
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    stepSize: 2, // increments of 2 votes
+                    precision: 0,
+                    max: Math.max(...roundedCounts, 4) + 2 // dynamic max but not too small
+                }
+            },
+            plugins: {
+                title: { display: true, text: "Star Ratings Distribution" },
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Set a fixed chart height for mobile
+    document.getElementById("barChart").parentElement.style.height = "300px";
+}
+
+// 📈 Line Chart: Lesson Average Comparison
+async function renderLessonLineChart(lessonId) {
+    const sessionsDB = new PouchDB("sessions");
+    const lessonDoc = await sessionsDB.get(lessonId);
+
+    const allLessons = (await sessionsDB.allDocs({ include_docs: true }))
+        .rows.map(r => r.doc)
+        .filter(l => l.type === "lesson" && l.subjectId === lessonDoc.subjectId)
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    const lessonLabels = allLessons.map(l => l.name);
+    const lessonAverages = allLessons.map(l => l.avgRating || 0);
+
+    const ctx = document.getElementById("lineChart").getContext("2d");
+    if (window.lessonLineChart) window.lessonLineChart.destroy();
+
+    window.lessonLineChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: lessonLabels,
+            datasets: [{
+                label: "Lesson Average",
+                data: lessonAverages,
+                fill: false,
+                borderColor: "rgba(52, 152, 219, 1)",
+                backgroundColor: "rgba(52, 152, 219, 0.5)",
+                tension: 0.3,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: 5 } },
+            plugins: { title: { display: true, text: "Lesson Average Comparison" } }
+        }
+    });
+}
+
+renderLessonLineChart(lessonId);
+renderStarBarChart(lessonId);
+</script>
+</body>
+</html>

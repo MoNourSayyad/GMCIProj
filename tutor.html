@@ -220,6 +220,7 @@ let subjects = [];
 let finishedLessons = [];
 let activeLesson = null;
 let qr = null; 
+const tutorUsername = localStorage.getItem("loggedInUsername");
 
 const localDB = new PouchDB("sessions");
 const remoteDB = new PouchDB("http://localhost:5984/sessions");
@@ -242,12 +243,39 @@ async function SyncFunc() {
     }
 }
 
+(async function intruderTutor() {
+
+  if (!tutorUsername) {
+    alert("Login required");
+    window.location.replace("sign.html?role=Tutor");
+    return;
+  }
+
+  const userDB = new PouchDB("users");
+  await userDB.sync(remoteUserDB);
+
+
+  try {
+    const user = await userDB.get("user_" + tutorUsername);
+
+    if (user.role !== "Tutor") {
+      alert("Access denied");
+      window.location.replace("welcome.html");
+    }
+  } catch {
+    console.error(err);
+    alert("Invalid session");
+    window.location.replace("welcome.html");
+  }
+})();
+
 async function fetchDataAndRender() {
+
     const result = await localDB.allDocs({ include_docs: true });
     const filteredDocs = result.rows.map(row => row.doc).filter(doc => !doc._id.startsWith('_design/'));
     
-    const subjectDocs = filteredDocs.filter(doc => doc.type === 'subject');
-    const lessonDocs = filteredDocs.filter(doc => doc.type === 'lesson');
+    const subjectDocs = filteredDocs.filter(doc => doc.type === 'subject' && doc.tutorId === tutorUsername);
+    const lessonDocs = filteredDocs.filter(doc => doc.type === 'lesson' && doc.tutorId === tutorUsername);
     
     subjects = subjectDocs.map(subject => ({
         ...subject,
@@ -346,7 +374,23 @@ function renderFinished() {
     finishedLessons.forEach(lesson => {
         const div = document.createElement("div");
         div.className = "FinishedLesson";
-        div.textContent = `${lesson.name} ~ Avgerage: ${lesson.avgRating}`; 
+        div.style.display = "flex";
+        div.style.justifyContent = "space-between";
+        div.style.alignItems = "center";
+        div.style.marginBottom = "6px";
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = `${lesson.name} ~ Average: ${lesson.avgRating}`;
+        div.appendChild(textSpan);
+
+        const button = document.createElement("button");
+        button.textContent = "Diagram";
+        button.style.fontSize = "14px";
+        button.onclick = () => { 
+            window.open(`diagram.html?lessonId=${lesson._id}`, "_blank") 
+        };
+        div.appendChild(button);
+
         container.appendChild(div);
     });
 }
@@ -355,10 +399,13 @@ async function addSubject() {
     const name = prompt("Enter Subject name:");
     if (!name) return; 
     
+    const tutorUsername = localStorage.getItem("loggedInUsername");
+
     const newSubject = {
         _id: `subject_${Date.now()}`, 
         type: 'subject', 
         name: name,
+        tutorId: tutorUsername
     };
 
     try {
@@ -384,6 +431,7 @@ async function addLesson(subjectId) {
         type: 'lesson',
         subjectId: subjectId,
         name: name,
+        tutorId: tutorUsername,
         pin: generatePin(),
         startTime: startTime,
         online: false,
@@ -413,6 +461,10 @@ async function showLiveLesson(subject, lesson) {
         console.error("Failed to mark online: ", err);
     }
 
+    if (lesson.tutorId !== tutorUsername) {
+    alert("You cannot access another tutor's lesson!");
+    return;
+}
     document.getElementById("liveTitle").textContent = `${subject.name}: ${lesson.name}`;
     document.getElementById("pin").textContent = lesson.pin;
     document.getElementById("endFeedback").style.display = "inline-block";
@@ -453,12 +505,15 @@ async function endLesson() {
     }
 }
 
+
+
 function openLiveFeedback() {
     const pin = activeLesson.pin;
     window.open(`liveView.html?pin=${pin}`, "_blank");
 }
 
 function logout() {
+    localStorage.removeItem("loggedInUsername");
     window.location.href = "sign.html?role=Tutor"
 }
 
