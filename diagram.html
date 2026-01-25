@@ -2,12 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Lesson Diagram</title>
+<title>Lesson Diagrams</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; text-align:center; background:#f4f4f4; }
-    h2 { color: #2c3e50; margin-bottom: 20px; }
+    body { 
+        font-family: Arial, 
+        sans-serif; 
+        margin: 20px; 
+        text-align:center; 
+        background:#f4f4f4;
+    }
+
+    h2 { 
+        color: #2c3e50; 
+        margin-bottom: 20px; 
+    }
+
     .chart-container {
         width: 95%;
         max-width: 600px;
@@ -17,7 +28,12 @@
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    canvas { width: 100% !important; height: auto !important; }
+
+    canvas { 
+        width: 100% !important; 
+        height: auto !important; 
+    }
+
 </style>
 </head>
 <body>
@@ -45,18 +61,26 @@ async function renderStarBarChart(lessonId) {
 
     const allResponses = await responsesDB.allDocs({ include_docs: true });
     const lessonResponses = allResponses.rows
-        .map(r => r.doc)
-        .filter(r => r.type === "response" && r.lessonId === lessonId);
+        .map(row => row.doc)
+        .filter(doc => doc.type === "response" && doc.lessonId === lessonId);
+    
+    
+    const allSessions = await sessionsDB.allDocs({ include_docs: true });
+    const lessonOfGraph = allSessions.rows
+        .map(row => row.doc)
+        .find(doc => doc.type === "lesson" && doc._id === lessonId);
+    
+    
 
     if (lessonResponses.length === 0) {
-        alert("No feedback yet!");
+        alert("No feedback");
         return;
     }
 
     const starCounts = [0, 0, 0, 0, 0];
-    lessonResponses.forEach(r => {
-        r.answers.forEach(a => {
-            if (a.value >= 1 && a.value <= 5) starCounts[a.value - 1] += 1;
+    lessonResponses.forEach(response => {
+        response.answers.forEach(answer => {
+            if (answer.value >= 1 && answer.value <= 5) starCounts[answer.value - 1] += 1;
         });
     });
 
@@ -71,10 +95,10 @@ async function renderStarBarChart(lessonId) {
             labels: ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"],
             datasets: [{
                 label: "Votes",
-                data: roundedCounts,
+                data: starCounts,
                 backgroundColor: "rgba(46, 204, 113, 0.7)",
                 borderColor: "rgba(46, 204, 113, 1)",
-                borderWidth: 1
+                borderWidth: 2
             }]
         },
         options: {
@@ -85,11 +109,19 @@ async function renderStarBarChart(lessonId) {
                     beginAtZero: true,
                     stepSize: 2, 
                     precision: 0,
-                    max: Math.max(...roundedCounts, 4) + 2 
+                    max: Math.max(...starCounts, 4) + 2 
                 }
             },
             plugins: {
-                title: { display: true, text: "Star Ratings Distribution" },
+                title: { 
+                    display: true, 
+                    text: `Star Ratings Distribution of ${lessonOfGraph.name}`,
+                    font: {
+                        size: 18,
+                        weight: 'bold'
+                    },
+                    color: '#c0392b' 
+                },
                 legend: { display: false }
             }
         }
@@ -103,12 +135,17 @@ async function renderLessonLineChart(lessonId) {
     const lessonDoc = await sessionsDB.get(lessonId);
 
     const allLessons = (await sessionsDB.allDocs({ include_docs: true }))
-        .rows.map(r => r.doc)
-        .filter(l => l.type === "lesson" && l.subjectId === lessonDoc.subjectId)
+        .rows.map(row => row.doc)
+        .filter(lesson => lesson.type === "lesson" && lesson.subjectId === lessonDoc.subjectId)
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
-    const lessonLabels = allLessons.map(l => l.name);
-    const lessonAverages = allLessons.map(l => l.avgRating || 0);
+    const lessonLabels = allLessons.map(lesson => lesson.name);
+    const lessonAverages = allLessons.map(lesson => lesson.avgRating || 0);
+
+    const allSessions = await sessionsDB.allDocs({ include_docs: true });
+    const lessonOfGraph = allSessions.rows
+        .map(row => row.doc)
+        .find(doc => doc.type === "lesson" && doc._id === lessonId);
 
     const ctx = document.getElementById("lineChart").getContext("2d");
     if (window.lessonLineChart) window.lessonLineChart.destroy();
@@ -131,7 +168,18 @@ async function renderLessonLineChart(lessonId) {
             responsive: true,
             maintainAspectRatio: false,
             scales: { y: { beginAtZero: true, max: 5 } },
-            plugins: { title: { display: true, text: "Lesson Average Comparison" } }
+            plugins: { 
+                title: { 
+                    display: true, 
+                    text: `Lesson Average Comparison of ${lessonOfGraph.subjectName}`,
+                    font: {
+                        size: 18,
+                        weight: 'bold'
+                    },
+                    color: '#c0392b' 
+                },
+                legend: { display: false }
+            }
         }
     });
 }

@@ -433,6 +433,7 @@ async function addLesson(subjectId) {
         name: name,
         tutorId: tutorUsername,
         pin: generatePin(),
+        subjectName: subjects.find(s => s._id === subjectId)?.name || "", // attach name immediately
         startTime: startTime,
         online: false,
         ended: false,

@@ -81,11 +81,7 @@
 
     <div id="pinEntry">
       <p>Enter PIN to participate:</p>
-      <input
-        type="text"
-        id="lessonPin"
-        placeholder="Enter the PIN or scan QR code"
-      />
+      <input type="text" id="lessonPin" placeholder="Enter the PIN or scan QR code"/>
       <button onclick="joinLesson()">Join</button>
     </div>
 
@@ -112,6 +108,7 @@
       const sessionsDB = new PouchDB("sessions");
       const sessionsRemote = new PouchDB("http://localhost:5984/sessions");
 
+  
       responsesDB.sync(responsesRemote, { live: true, retry: true });
       sessionsDB.sync(sessionsRemote, { live: true, retry: true });
 
