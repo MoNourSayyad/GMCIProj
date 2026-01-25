@@ -30,8 +30,8 @@
     }
 
     canvas { 
-        width: 100% !important; 
-        height: auto !important; 
+        width: 100%; 
+        height: auto; 
     }
 
 </style>
@@ -47,6 +47,10 @@
     <canvas id="lineChart"></canvas>
 </div>
 
+<div class="chart-container">
+    <canvas id="emojiChart"></canvas>
+</div>
+
 <script>
 const urlParams = new URLSearchParams(window.location.search);
 const lessonId = urlParams.get("lessonId");
@@ -58,19 +62,19 @@ const sessionsDB = new PouchDB("sessions");
 
 async function renderStarBarChart(lessonId) {
     const responsesDB = new PouchDB("responses");
-
+    
     const allResponses = await responsesDB.allDocs({ include_docs: true });
     const lessonResponses = allResponses.rows
         .map(row => row.doc)
         .filter(doc => doc.type === "response" && doc.lessonId === lessonId);
     
     
-    const allSessions = await sessionsDB.allDocs({ include_docs: true });
+        const allSessions = await sessionsDB.allDocs({ include_docs: true });
     const lessonOfGraph = allSessions.rows
         .map(row => row.doc)
         .find(doc => doc.type === "lesson" && doc._id === lessonId);
     
-    
+        
 
     if (lessonResponses.length === 0) {
         alert("No feedback");
@@ -88,7 +92,7 @@ async function renderStarBarChart(lessonId) {
 
     const ctx = document.getElementById("barChart").getContext("2d");
     if (window.starBarChart) window.starBarChart.destroy();
-
+    
     window.starBarChart = new Chart(ctx, {
         type: "bar",
         data: {
@@ -128,6 +132,48 @@ async function renderStarBarChart(lessonId) {
     });
 
     document.getElementById("barChart").parentElement.style.height = "300px";
+}
+
+async function renderEmojiChart(lessonPin) {
+    const allResponses = await responsesDB.allDocs({ include_docs: true });
+    const reactions = allResponses.rows
+        .map(row => row.doc)
+        .filter(doc => doc.type === "reaction" && doc.lessonPin === lessonPin);
+
+    const allSessions = await sessionsDB.allDocs({ include_docs: true });
+    const lessonOfGraph = allSessions.rows
+        .map(row => row.doc)
+        .find(doc => doc.type === "lesson" && doc._id === lessonId);
+    
+
+    const counts = { "👍": 0, "❤️": 0, "💀": 0, "❓": 0, "⭐⭐⭐⭐⭐": 0, "😠":0 };
+    reactions.forEach(r => { if(counts[r.emoji] !== undefined) counts[r.emoji]++; });
+
+    const ctx = document.getElementById("emojiChart").getContext("2d");
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(counts),
+            datasets: [{
+                data: Object.values(counts),
+                backgroundColor: ['#3498db', '#FFD3B6', '#7f8c8d', '#9b59b6', '#f1c40f', '#D63031']
+            }]
+        },
+        options: {
+            plugins: {
+                title: { 
+                    display: true, 
+                    text: `Total Class Reactions of ${lessonOfGraph.subjectName}`,
+                    font: {
+                        size: 18,
+                        weight: 'bold'
+                    },
+                    color: '#c0392b' 
+                },
+                }
+            }
+        }
+    );
 }
 
 async function renderLessonLineChart(lessonId) {
@@ -184,8 +230,22 @@ async function renderLessonLineChart(lessonId) {
     });
 }
 
-renderLessonLineChart(lessonId);
-renderStarBarChart(lessonId);
+async function initDiagrams() {
+    try {
+        const lessonDoc = await sessionsDB.get(lessonId);
+        document.getElementById("lessonTitle").textContent = `Diagrams for: ${lessonDoc.name}`;
+
+        await renderLessonLineChart(lessonId);
+        await renderStarBarChart(lessonId);
+        await renderEmojiChart(lessonDoc.pin); 
+
+    } catch (err) {
+        console.error("Error loading charts:", err);
+        document.getElementById("lessonTitle").textContent = "Error loading charts.";
+    }
+}
+
+initDiagrams();
 </script>
 </body>
 </html>

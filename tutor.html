@@ -175,7 +175,7 @@
             margin-bottom:5px; 
             border-radius:6px; 
         }
-
+        
          @media screen and (max-width: 768px) {
             .container {
                 width: 90%;
@@ -244,29 +244,29 @@ async function SyncFunc() {
 }
 
 (async function intruderTutor() {
-
-  if (!tutorUsername) {
-    alert("Login required");
-    window.location.replace("sign.html?role=Tutor");
-    return;
-  }
-
-  const userDB = new PouchDB("users");
-  await userDB.sync(remoteUserDB);
-
-
-  try {
-    const user = await userDB.get("user_" + tutorUsername);
-
-    if (user.role !== "Tutor") {
-      alert("Access denied");
-      window.location.replace("welcome.html");
+    const remoteUserDB = new PouchDB("http://localhost:5984/users");
+    if (!tutorUsername) {
+        alert("Login required");
+        window.location.replace("sign.html?role=Tutor");
+        return;
     }
-  } catch {
-    console.error(err);
-    alert("Invalid session");
-    window.location.replace("welcome.html");
-  }
+
+    const userDB = new PouchDB("users");
+    await userDB.sync(remoteUserDB);
+
+
+    try {
+        const user = await userDB.get("user_" + tutorUsername);
+
+        if (user.role !== "Tutor") {
+        alert("Access denied");
+        window.location.replace("welcome.html");
+        }
+    } catch {
+        console.error(err);
+        alert("Invalid session");
+        window.location.replace("welcome.html");
+    }
 })();
 
 async function fetchDataAndRender() {
