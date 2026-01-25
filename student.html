@@ -105,17 +105,17 @@
   if (localStorage.getItem("loggedInUsername")) {
     document.body.style.display = "block";
   } else {
-    alert("U must be logged in");
+    alert("You must be logged in");
     window.location.replace("sign.html?role=Student");
   }
   </script>
     <script>
 
       const responsesDB = new PouchDB("responses");
-      const responsesRemote = new PouchDB("http://localhost:5984/responses");
+      const responsesRemote = new PouchDB("http://192.168.1.110:5984/responses");
 
       const sessionsDB = new PouchDB("sessions");
-      const sessionsRemote = new PouchDB("http://localhost:5984/sessions");
+      const sessionsRemote = new PouchDB("http://192.168.1.110:5984/sessions");
 
   
       responsesDB.sync(responsesRemote, { live: true, retry: true });

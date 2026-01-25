@@ -107,10 +107,10 @@ h1 {
 
 <script>
 const localResponsesDB = new PouchDB("responses");
-const remoteResponsesDB = new PouchDB("http://localhost:5984/responses");
+const remoteResponsesDB = new PouchDB("http://192.168.1.110:5984/responses");
 
 const localSessionsDB = new PouchDB("sessions");
-const remoteSessionsDB = new PouchDB("http://localhost:5984/sessions");
+const remoteSessionsDB = new PouchDB("http://192.168.1.110:5984/sessions");
 
 const activePin = new URLSearchParams(window.location.search).get("pin");
 

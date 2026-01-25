@@ -166,7 +166,7 @@
         }
         
         const localDB = new PouchDB("users");
-        const remoteDB = new PouchDB("http://localhost:5984/users");
+        const remoteDB = new PouchDB("http://192.168.1.110:5984/users");
         
         localDB.sync(remoteDB, {live:true, retry: true})
             .on('error', function (err) {
@@ -239,7 +239,7 @@
                 }
 
                 if (user.role !== role) {
-                    alert(`Wrong Portal. U are a ${user.role}`);
+                    alert(`Wrong Portal. You are a  ${user.role}`);
                     return;
                 }
                 
