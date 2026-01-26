@@ -61,6 +61,21 @@
         font-weight: 500;
       }
 
+      .message {
+        font-family: "Arial", sans-serif;
+        font-size: 26px;
+        color: #ff0000;
+        padding: 20px;
+      }
+
+      #reactionBar button {
+        transition: transform 0.2s;
+      }
+
+      #reactionBar button:hover {
+        transform: scale(1.3);
+      }
+
       #status {
         margin-top: 20px;
         color: green;
@@ -72,6 +87,7 @@
           width: 90%;
         }
       }
+
     </style>
   </head>
   <body style="display: none;">
@@ -197,6 +213,11 @@
       function renderQuestions() {
         const container = document.getElementById("questionsContainer");
         container.innerHTML = "";
+        
+        const div = document.createElement("div")
+        div.innerHTML = "On a scale of ⭐⭐⭐⭐⭐";
+        div.className = "message";
+        container.appendChild(div);
 
         questions.forEach((q, i) => {
           const div = document.createElement("div");
@@ -213,7 +234,7 @@
 
           container.appendChild(div);
         });
-
+        
         document.getElementById("feedbackForm").style.display = "inline-block";
         document.getElementById("reactionBar").style.display = "block";
       }
