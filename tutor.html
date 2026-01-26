@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,7 +224,7 @@ let qr = null;
 const tutorUsername = localStorage.getItem("loggedInUsername");
 
 const localDB = new PouchDB("sessions");
-const remoteDB = new PouchDB("http://192.168.1.110:5984/sessions");
+const remoteDB = new PouchDB("http://localhost:5984/sessions");
 
 async function SyncFunc() {
     try {
@@ -244,7 +245,7 @@ async function SyncFunc() {
 }
 
 (async function intruderTutor() {
-    const remoteUserDB = new PouchDB("http://192.168.1.110:5984/users");
+    const remoteUserDB = new PouchDB("http://localhost:5984/users");
     if (!tutorUsername) {
         alert("Login required");
         window.location.replace("sign.html?role=Tutor");
@@ -463,33 +464,22 @@ async function showLiveLesson(subject, lesson) {
     }
 
     if (lesson.tutorId !== tutorUsername) {
-        alert("You cannot access another tutor's lesson!");
-        return;
-    }
-
-    let host = window.location.host; 
-    if (host.includes("localhost") || host.includes("127.0.0.1")) {
-        host = "192.168.1.110:5500"; 
-    }
-
-    const protocol = window.location.protocol; 
-    const path = window.location.pathname.replace("tutor.html", "student.html");
-    const fullUrl = `${protocol}//${host}${path}?pin=${lesson.pin}`;
-
+    alert("You cannot access another tutor's lesson!");
+    return;
+}
     document.getElementById("liveTitle").textContent = `${subject.name}: ${lesson.name}`;
     document.getElementById("pin").textContent = lesson.pin;
-    document.getElementById("link").textContent = fullUrl;
     document.getElementById("endFeedback").style.display = "inline-block";
     document.getElementById("ViewLiveFeedback").style.display = "inline-block";
 
+    const url = `student.html?pin=${lesson.pin}`;
+    document.getElementById("link").textContent = url;
+
     const qrCodeContainer = document.getElementById("qrCode");
     qrCodeContainer.innerHTML = ""; 
-    qr = new QRCode(qrCodeContainer, {
-        text: fullUrl,
-        width: 180,
-        height: 180
-    }); 
+    qr = new QRCode(qrCodeContainer, url); 
 }
+
 async function endLesson() {
 
     if (!activeLesson) return;

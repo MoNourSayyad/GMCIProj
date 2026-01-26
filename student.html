@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Live View</title>
+    <title>Student Feedback</title>
     <link rel="stylesheet" href="cssAll.css" />
     <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
 
@@ -105,17 +106,17 @@
   if (localStorage.getItem("loggedInUsername")) {
     document.body.style.display = "block";
   } else {
-    alert("You must be logged in");
+    alert("U must be logged in");
     window.location.replace("sign.html?role=Student");
   }
   </script>
     <script>
 
       const responsesDB = new PouchDB("responses");
-      const responsesRemote = new PouchDB("http://192.168.1.110:5984/responses");
+      const responsesRemote = new PouchDB("http://localhost:5984/responses");
 
       const sessionsDB = new PouchDB("sessions");
-      const sessionsRemote = new PouchDB("http://192.168.1.110:5984/sessions");
+      const sessionsRemote = new PouchDB("http://localhost:5984/sessions");
 
   
       responsesDB.sync(responsesRemote, { live: true, retry: true });

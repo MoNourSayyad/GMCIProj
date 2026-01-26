@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,7 +119,7 @@
 
     <form id="signupForm" class = "form hidden">
         <label>Username: <input id = "signupUser" type="text" name = "username" placeholder="username" required ></label>
-        <label>Email: <input id = "signupEmail" type="email" pattern = "[a-zA-Z0-9._%+-]+@stud\.uni-hannover\.de" name = "email" placeholder="blabla@stud.uni-hannover.de" required></label>
+        <label>Email: <input id = "signupEmail" type="email" pattern="[A-Za-z0-9._%+-]+@stud\.uni-hannover\.de" name = "email" placeholder="blabla@stud.uni-hannover.de" required></label>
         <label>Password: <input id = "signupPass" type="password" name = "password" placeholder="password" required></label>
         <label>Confirm password: <input id = "signupConf" type="password" name = "confirmPassword" placeholder="password" required></label>
         <button type="submit">Sign Up</button>
@@ -166,7 +167,7 @@
         }
         
         const localDB = new PouchDB("users");
-        const remoteDB = new PouchDB("http://192.168.1.110:5984/users");
+        const remoteDB = new PouchDB("http://localhost:5984/users");
         
         localDB.sync(remoteDB, {live:true, retry: true})
             .on('error', function (err) {
@@ -192,6 +193,11 @@
             const username = signupUser.value.trim();
             const email = signupEmail.value.trim().toLowerCase();
             
+            const emailRegex = /^[A-Za-z0-9._%+-]+@stud\.uni-hannover\.de$/;
+            if (!emailRegex.test(email)) {
+                alert("Only @stud.uni-hannover.de emails are allowed!");
+                return;
+            }
 
             try {
                 const allDocs = await localDB.allDocs({ include_docs: true });
@@ -239,7 +245,7 @@
                 }
 
                 if (user.role !== role) {
-                    alert(`Wrong Portal. You are a  ${user.role}`);
+                    alert(`Wrong Portal. U are a ${user.role}`);
                     return;
                 }
                 
